@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>মিষ্টি AI - বানিয়ে উত্তর দেয়</title>
+<style>
+body{margin:0;background:linear-gradient(#ff9a9e,#fad0c4);font-family:sans-serif;text-align:center;padding:15px}
+#face{font-size:100px}
+#msg{background:white;padding:15px;border-radius:20px;min-height:80px;font-size:19px;text-align:left}
+input{width:90%;padding:14px;font-size:18px;border-radius:15px;border:none;margin-top:10px}
+button{font-size:20px;padding:12px 25px;border:none;border-radius:50px;background:#ff2e7e;color:white;margin:6px}
+#mic{background:#00b894}
+#keybox{width:90%;padding:10px;border-radius:10px;border:1px solid #ccc}
+</style>
+</head>
+<body>
+<h2>👧 মিষ্টি AI - সব প্রশ্নের উত্তর দিবে</h2>
+<div id="face">😊</div>
+<div id="msg">হাই! আমি মিষ্টি। তুমি যা খুশি জিজ্ঞেস করো, আমি বানিয়ে বানিয়ে উত্তর দিবো!</div>
+<input id="keybox" placeholder="এখানে তোমার Gemini API Key (AIza...) বসাও" />
+<br>
+<input id="q" placeholder="এখানে লিখো... যেমন: আমাকে একটা গল্প বলো" />
+<br>
+<button onclick="ask()">💬 উত্তর দাও</button>
+<button id="mic" onclick="startListen()">🎤 মুখে বলো</button>
+<button onclick="speakText('হাই! আমি মিষ্টি, তোমার বন্ধু!')">👋 হাই</button>
+<script>
+let voices=[];
+speechSynthesis.onvoiceschanged=()=>{voices=speechSynthesis.getVoices();};
+voices=speechSynthesis.getVoices();
+function speakText(t){
+document.getElementById('msg').innerText=t;
+document.getElementById('face').innerText='😍';
+let u=new SpeechSynthesisUtterance(t);u.lang='bn-BD';u.rate=0.95;u.pitch=1.4;
+let f=voices.find(v=>v.lang.includes('bn'));
+if(f)u.voice=f;
+u.onend=()=>{document.getElementById('face').innerText='😊';};
+speechSynthesis.cancel();speechSynthesis.speak(u);
+}
+async function ask(){
+let key=document.getElementById('keybox').value.trim();
+let question=document.getElementById('q').value.trim();
+if(!key){speakText('আগে উপরে তোমার জিমিনি এপিআই কি টা বসাও।');return;}
+if(!question){speakText('আগে কিছু একটা লিখো বা মুখে বলো।');return;}
+document.getElementById('msg').innerText='ভাবছি... 🤔';
+document.getElementById('face').innerText='🤔';
+try{
+let res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`,{
+method:'POST',headers:{'Content-Type':'application/json'},
+body:JSON.stringify({contents:[{parts:[{text:`তুমি মিষ্টি নামের মেয়ে বন্ধু AI। সবসময় বাংলায়, মিষ্টি করে, ছোট করে উত্তর দিবে, বন্ধুর মতো কথা বলবে। প্রশ্ন: ${question}` }]}]})
+});
+let data=await res.json();
+let ans=data.candidates?.[0]?.content?.parts?.[0]?.text || 'দুঃখিত, আবার বলো তো।';
+speakText(ans);
+}catch(e){speakText('কি টা ভুল আছে মনে হয়। কি টা আবার চেক করো।');}
+}
+function startListen(){
+let Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
+if(!Rec){speakText('এই ফোনে ভয়েস চিনছে না।');return;}
+let rec=new Rec();rec.lang='bn-BD';
+document.getElementById('msg').innerText='শুনছি... বলো...';
+rec.start();
+rec.onresult=(e)=>{document.getElementById('q').value=e.results[0][0].transcript;ask();};
+}
+</script>
+</body>
+</html>
